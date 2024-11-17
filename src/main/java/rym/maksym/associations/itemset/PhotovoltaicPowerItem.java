@@ -9,6 +9,10 @@ public class PhotovoltaicPowerItem implements Item {
         this.value = value;
     }
 
+    public PhotovoltaicPowerItem(String value) {
+        this.value = Double.valueOf(value);
+    }
+
     @Override
     public String value() {
         return String.valueOf(value);
