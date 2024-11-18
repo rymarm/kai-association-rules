@@ -7,15 +7,16 @@ import java.util.*;
 public class Transactions implements Iterable<ItemSet> {
     private ArrayList<ItemSet> transactions = new ArrayList<>();
 
-    public void addItemSet(ItemSet itemSet) {
+    public Transactions addItemSet(ItemSet itemSet) {
         transactions.add(itemSet);
+        return this;
     }
 
     public ArrayList<ItemSet> getTransactions() {
         return transactions;
     }
 
-    public long size() {
+    public int size() {
         return transactions.size();
     }
 

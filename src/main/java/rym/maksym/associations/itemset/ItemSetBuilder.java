@@ -16,6 +16,10 @@ public class ItemSetBuilder {
         return this;
     }
 
+    public boolean isEmpty() {
+        return items.isEmpty();
+    }
+
     public ItemSet build() {
         return new ItemSet(items, transactionTime);
     }

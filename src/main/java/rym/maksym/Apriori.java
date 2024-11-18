@@ -1,5 +1,10 @@
 package rym.maksym;
 
+import rym.maksym.associations.itemset.Item;
+import rym.maksym.associations.itemset.ItemSet;
+import rym.maksym.associations.transactions.Normalization;
+import rym.maksym.associations.transactions.Transactions;
+
 import java.util.*;
 
 public class Apriori {
@@ -9,122 +14,111 @@ public class Apriori {
         this.minSupport = minSupport;
     }
 
-    /**
-     * Calculate support of item sets for transactions
-     * @param transactions list of item transactions
-     */
-    public Map<Set<String>, Double> apriori(List<Set<String>> transactions) {
-        Map<Set<String>, Double> allFrequentItemSets = new HashMap<>();
-        Map<Set<String>, Double> itemsSupport = calculateSingleItemSetOccurrence(transactions);
-
-        while (!itemsSupport.isEmpty()) {
-            allFrequentItemSets.putAll(itemsSupport);
-            itemsSupport = combineAndPrune(itemsSupport.keySet(), transactions);
-        }
-        return allFrequentItemSets;
+    public Map<Set<Item>, Double> calculateItemGroupsSupport(Transactions transactions) {
+        return calculateItemGroupsSupport(transactions, true);
     }
 
-    /**
-     * Calculate  items support from the transactions and filter out the lower than {@link #minSupport}
-     * @param transactions - list of transactions
-     * @return map of items with their support value
-     */
-    private Map<Set<String>, Double> calculateSingleItemSetOccurrence(List<Set<String>> transactions) {
-        final int totalTransactions = transactions.size();
+    public Map<Set<Item>, Double> calculateItemGroupsSupport(Transactions transactions, boolean normalizeItemsValues) {
+        if (normalizeItemsValues) {
+            transactions = Normalization.minMax(transactions);
+        }
 
-        Map<String, Integer> itemsOccurrenceFrequency = new HashMap<>();
-        for (Set<String> transaction : transactions) {
-            for (String item : transaction) {
-                itemsOccurrenceFrequency.put(item, itemsOccurrenceFrequency.getOrDefault(item, 0) + 1);
+        Map<Set<Item>, Double> allItemGroupsSupport = new HashMap<>();
+        Map<Set<Item>, Double> itemGroupsSupport = calculateSingleItemGroupSupport(transactions);
+
+        while (!itemGroupsSupport.isEmpty()) {
+            allItemGroupsSupport.putAll(itemGroupsSupport);
+            itemGroupsSupport = combineAndPrune(itemGroupsSupport.keySet(), transactions);
+        }
+        return allItemGroupsSupport;
+    }
+
+    private Map<Set<Item>, Double> calculateSingleItemGroupSupport(Transactions transactions) {
+        final int transactionCount = transactions.size();
+
+        Map<Item, Integer> itemsFrequencyCount = new HashMap<>();
+        for (ItemSet itemSet : transactions) {
+            for (Item item : itemSet) {
+                int  itemFrequencyCount = itemsFrequencyCount.getOrDefault(item, 0) + 1;
+                itemsFrequencyCount.put(item, itemFrequencyCount);
             }
         }
 
-        Map<Set<String>, Double> itemsSupport = new HashMap<>();
-        for (Map.Entry<String, Integer> entry : itemsOccurrenceFrequency.entrySet()) {
-            double support = (double) entry.getValue() / totalTransactions;
+        Map<Set<Item>, Double> singleItemGroupsSupport = new HashMap<>();
+        itemsFrequencyCount.forEach((item, itemFrequencyCount) -> {
+            double support = (double) itemFrequencyCount / transactionCount;
             if (support >= minSupport) {
-                itemsSupport.put(Set.of(entry.getKey()), support);
+                singleItemGroupsSupport.put(Set.of(item), support);
             }
-        }
-        return itemsSupport;
+
+        });
+        return singleItemGroupsSupport;
     }
 
-    private Map<Set<String>, Double> combineAndPrune(Set<Set<String>> itemSetsList, List<Set<String>> transactions) {
-        Set<Set<String>> newItemSets = combine(List.copyOf(itemSetsList));
-        return prune(newItemSets, transactions);
+    private Map<Set<Item>, Double> combineAndPrune(Set<Set<Item>> itemGroupsSet, Transactions transactions) {
+        Set<Set<Item>> combinedItemGroups = combine(itemGroupsSet);
+        return prune(combinedItemGroups, transactions);
     }
 
-    /**
-     * Combine the item sets into new sets with +1 size
-     * @param itemSetsList list of item sets to combine
-     */
-    private Set<Set<String>> combine(List<Set<String>> itemSetsList) {
-        int presentItemSetSize = itemSetsList.get(0).size();
-        final int THE_NEXT_ITEM_SET_SIZE = presentItemSetSize + 1;
+    private Set<Set<Item>> combine(Set<Set<Item>> itemGroupsSet) {
+        List<Set<Item>> itemGroupsList = List.copyOf(itemGroupsSet);
 
-        Set<Set<String>> nextItemSets = new HashSet<>();
+        int presentItemGroupSize = itemGroupsList.get(0).size();
+        final int THE_NEXT_ITEM_GROUP_SIZE = presentItemGroupSize + 1;
 
-        for (int itemSetNumber = 0; itemSetNumber < itemSetsList.size(); itemSetNumber++) {
-            for (int nextItemSetNumber = itemSetNumber + 1; nextItemSetNumber < itemSetsList.size(); nextItemSetNumber++) {
-                Set<String> newItemCombinationSet = new HashSet<>(itemSetsList.get(itemSetNumber));
-                newItemCombinationSet.addAll(itemSetsList.get(nextItemSetNumber));
+        Set<Set<Item>> nextItemGroups = new HashSet<>();
 
-                if (newItemCombinationSet.size() == THE_NEXT_ITEM_SET_SIZE) {
-                    nextItemSets.add(newItemCombinationSet);
+        for (int itemGroupIndex = 0; itemGroupIndex < itemGroupsList.size(); itemGroupIndex++) {
+            for (int nextItemGroupIndex = itemGroupIndex + 1; nextItemGroupIndex < itemGroupsList.size(); nextItemGroupIndex++) {
+                Set<Item> newItemCombinationGroup = new HashSet<>(itemGroupsList.get(itemGroupIndex));
+                newItemCombinationGroup.addAll(itemGroupsList.get(nextItemGroupIndex));
+
+                if (newItemCombinationGroup.size() == THE_NEXT_ITEM_GROUP_SIZE) {
+                    nextItemGroups.add(newItemCombinationGroup);
                 }
             }
         }
-        return nextItemSets;
+        return nextItemGroups;
     }
 
-    /**
-     * Calculate combination sets support and prune sets with lower than {@link #minSupport} threshold
-     * @param itemSetsList list of item sets to prune
-     * @param transactions transactions list the item sets are belong
-     */
-    private Map<Set<String>, Double> prune(Set<Set<String>> itemSetsList, List<Set<String>> transactions) {
-        Map<Set<String>, Double> itemSetsSupport = new HashMap<>();
-        for (Set<String> itemSet : itemSetsList) {
-            double support = calculateSupport(itemSet, transactions);
+    private Map<Set<Item>, Double> prune(Set<Set<Item>> itemGroupsList, Transactions transactions) {
+        Map<Set<Item>, Double> itemGroupsSupport = new HashMap<>();
+        for (Set<Item> itemGroup : itemGroupsList) {
+            double support = calculateSupport(itemGroup, transactions);
             if (support >= minSupport) {
-                itemSetsSupport.put(itemSet, support);
+                itemGroupsSupport.put(itemGroup, support);
             }
         }
 
-        return itemSetsSupport;
+        return itemGroupsSupport;
     }
 
+    private double calculateSupport(Set<Item> itemGroup, Transactions transactions) {
+        int frequencyCount = 0;
 
-    private double calculateSupport(Set<String> itemSet, List<Set<String>> transactions) {
-        int count = calculateSetOccurrence(itemSet, transactions);
-        return (double) count / transactions.size();
-    }
-
-    private int calculateSetOccurrence(Set<String> itemSet, List<Set<String>> transactions) {
-        int count = 0;
-        for (Set<String> transaction : transactions) {
-            if (transaction.containsAll(itemSet)) {
-                count++;
+        for (ItemSet itemSet : transactions) {
+            if (itemSet.containsAll(itemGroup)) {
+                frequencyCount++;
             }
         }
-        return count;
+        return (double) frequencyCount / transactions.size();
     }
 
-    public void generateAssociationRules(Map<Set<String>, Double> frequentItemSets, List<Set<String>> transactions, double minConfidence) {
-        for (Set<String> itemSet : frequentItemSets.keySet()) {
-            if (itemSet.size() < 2) {
+    public void generateAssociationRules(Map<Set<Item>, Double> itemGroupsSupport, Transactions transactions, double minConfidence) {
+        for (Set<Item> itemsGroup : itemGroupsSupport.keySet()) {
+            if (itemsGroup.size() < 2) {
                 continue;
             }
-            for (String item : itemSet) {
-                Set<String> itemGroup = new HashSet<>(itemSet);
+            for (Item item : itemsGroup) {
+                Set<Item> itemGroup = new HashSet<>(itemsGroup);
                 itemGroup.remove(item);
-                Set<String> singleItem = Set.of(item);
+                Set<Item> singleItem = Set.of(item);
 
                 double itemGroupSupport = calculateSupport(itemGroup, transactions);
-                double itemSetSupport = frequentItemSets.get(itemSet);
+                double itemSetSupport = itemGroupsSupport.get(itemsGroup);
                 double confidence = itemSetSupport / itemGroupSupport;
 
-                double itemSupport = frequentItemSets.get(Set.of(item));
+                double itemSupport = itemGroupsSupport.get(Set.of(item));
                 double itemLift = confidence / itemSupport;
 
                 if (confidence >= minConfidence) {

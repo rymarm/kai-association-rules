@@ -1,5 +1,5 @@
-package rym.maksym.associations.itemset;
+package rym.maksym.associations.transactions.loader;
 
-public enum ItemType {
+public enum PvGisItem {
     PhotovoltaicPower, PlaneOfArray, SunHeightItem, AirTemperature, WindSpeedItem
 }

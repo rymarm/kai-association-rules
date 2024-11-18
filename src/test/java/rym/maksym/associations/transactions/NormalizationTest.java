@@ -16,7 +16,7 @@ class NormalizationTest {
         Transactions normilizedTransactions = Normalization.minMax(transactions);
 
         //verification
-        Assertions.assertEquals(transactions.size(), normilizedTransactions.size());
+        Assertions.assertEquals(17544, normilizedTransactions.size());
         for(ItemSet itemSet : normilizedTransactions) {
             for (Item item : itemSet) {
                 double itemValue = item.getValue();

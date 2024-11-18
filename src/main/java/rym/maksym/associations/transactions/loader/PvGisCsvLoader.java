@@ -5,6 +5,7 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import rym.maksym.associations.itemset.*;
 import rym.maksym.associations.transactions.Transactions;
+import rym.maksym.associations.util.GeneralNumericItem;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -14,12 +15,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 public class PvGisCsvLoader {
-    private static final Map<String, ItemType> HEADER_TO_ITEM_TYPE = Map.of(
-            "P", ItemType.PhotovoltaicPower,
-            "G(i)", ItemType.PlaneOfArray,
-            "H_sun", ItemType.SunHeightItem,
-            "T2m", ItemType.AirTemperature,
-            "WS10m", ItemType.WindSpeedItem
+    private static final Map<String, PvGisItem> HEADER_TO_ITEM_TYPE = Map.of(
+            "P", PvGisItem.PhotovoltaicPower,
+            "G(i)", PvGisItem.PlaneOfArray,
+            "H_sun", PvGisItem.SunHeightItem,
+            "T2m", PvGisItem.AirTemperature,
+            "WS10m", PvGisItem.WindSpeedItem
     );
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd:HHmm");
@@ -59,8 +60,12 @@ public class PvGisCsvLoader {
         itemSetBuilder.addTransactionTime(recordTime);
 
         HEADER_TO_ITEM_TYPE.forEach((header, itemType) -> {
-            String itemValue = csvRecord.get(header);
-            Item item = new Item(itemValue, itemType);
+            String stringItemValue = csvRecord.get(header);
+            double itemValue = Double.valueOf(stringItemValue);
+
+            GeneralNumericItem pvGisItem = new GeneralNumericItem(itemType.toString(), itemValue);
+
+            Item item = new Item(pvGisItem, itemValue);
             itemSetBuilder.addItem(item);
         });
         return itemSetBuilder.build();

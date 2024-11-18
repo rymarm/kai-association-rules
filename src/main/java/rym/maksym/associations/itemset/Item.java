@@ -3,37 +3,55 @@ package rym.maksym.associations.itemset;
 import java.util.Objects;
 
 public class Item {
-    private double value;
-    private final ItemType type;
+    private double numericValue;
+    private final Object item;
 
-    public Item(double value, ItemType type) {
-        this.value = value;
-        this.type = type;
+    private final boolean isNumeric;
+
+    public Item(Object item) {
+        this.item = item;
+        this.isNumeric = false;
     }
 
-    public Item(String value, ItemType type) {
-        this.value = Double.valueOf(value);
-        this.type = type;
+    public Item(Object item, double numericValue) {
+        this.item = item;
+        this.isNumeric = true;
+        this.numericValue = numericValue;
     }
 
-    public ItemType getType() {
-        return type;
+    public static Item of(Object item) {
+        return new Item(item);
     }
-
     public double getValue() {
-        return value;
+        return numericValue;
+    }
+
+    public Object getOriginalItem() {
+        return item;
+    }
+
+    public boolean isNumeric() {
+        return isNumeric;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Item item = (Item) o;
-        return Double.compare(value, item.value) == 0 && type == item.type;
+        Item item1 = (Item) o;
+        if (isNumeric) {
+            return Double.compare(numericValue, item1.numericValue) == 0 && Objects.equals(item, item1.item);
+        } else {
+            return Objects.equals(item, item1.item);
+        }
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(value, type);
+        if (isNumeric) {
+            return Objects.hash(numericValue, item);
+        } else {
+            return Objects.hash(item);
+        }
     }
 }

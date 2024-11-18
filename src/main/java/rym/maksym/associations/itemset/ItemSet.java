@@ -20,6 +20,10 @@ public class ItemSet implements Iterable<Item> {
         return transactionTime;
     }
 
+    public boolean containsAll(Set<Item> itemGroup) {
+        return itemSet.containsAll(itemGroup);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -1,53 +1,59 @@
 package rym.maksym.associations.transactions;
 
-import rym.maksym.associations.itemset.Item;
-import rym.maksym.associations.itemset.ItemSet;
-import rym.maksym.associations.itemset.ItemSetBuilder;
-import rym.maksym.associations.itemset.ItemType;
+import rym.maksym.associations.itemset.*;
+import rym.maksym.associations.transactions.loader.PvGisItem;
 import rym.maksym.associations.util.MinMax;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class Normalization {
     public static Transactions minMax(Transactions transactions) {
-        Map<ItemType, MinMax> itemsMinMax = findMinMax(transactions);
+        Map<Object, MinMax> itemsMinMax = findMinMax(transactions);
         Transactions normalizedTransactions = new Transactions();
         for (ItemSet itemSet : transactions) {
             ItemSetBuilder normalizedItemSetBuilder = new ItemSetBuilder();
             normalizedItemSetBuilder.addTransactionTime(itemSet.getTransactionTime());
+
             for (Item item : itemSet) {
-                Item normalizedItem = normalizeItemValue(item, itemsMinMax);
-                normalizedItemSetBuilder.addItem(normalizedItem);
+                if (item.isNumeric()) {
+                    Item normalizedItem = normalizeItemValue(item, itemsMinMax);
+                    normalizedItemSetBuilder.addItem(normalizedItem);
+                }
             }
-            normalizedTransactions.addItemSet(normalizedItemSetBuilder.build());
+            ItemSet newItemSet = normalizedItemSetBuilder.build();
+            if (normalizedItemSetBuilder.isEmpty()) {
+                newItemSet = itemSet;
+            }
+            normalizedTransactions.addItemSet(newItemSet);
         }
         return normalizedTransactions;
     }
 
-    private static Item normalizeItemValue(Item item, Map<ItemType, MinMax> itemsMinMax) {
-        MinMax itemMinMaxValues = itemsMinMax.get(item.getType());
+    private static Item normalizeItemValue(Item item, Map<Object, MinMax> itemsMinMax) {
+        MinMax itemMinMaxValues = itemsMinMax.get(item.getOriginalItem());
         double normalizedValue = (item.getValue() - itemMinMaxValues.getMin()) /
                 (itemMinMaxValues.getMax() - itemMinMaxValues.getMin());
         normalizedValue = new BigDecimal(normalizedValue)
                 .setScale(4, RoundingMode.HALF_UP)
                 .doubleValue();
-        return new Item(normalizedValue, item.getType());
+        return new Item(item.getOriginalItem(), normalizedValue);
     }
 
-    private static Map<ItemType, MinMax> findMinMax(Transactions transactions) {
-        Map<ItemType, MinMax> itemsMinMax = new HashMap<>();
+    private static Map<Object, MinMax> findMinMax(Transactions transactions) {
+        Map<Object, MinMax> itemsMinMax = new HashMap<>();
         for (ItemSet itemSet : transactions) {
             for(Item item : itemSet) {
-                MinMax itemMinMaxValue = itemsMinMax.get(item.getType());
-                if (itemMinMaxValue == null) {
-                    itemMinMaxValue = new MinMax(0, 0);
-                    itemsMinMax.put(item.getType(), itemMinMaxValue);
+                if (item.isNumeric()) {
+                    MinMax itemMinMaxValue = itemsMinMax.get(item.getOriginalItem());
+                    if (itemMinMaxValue == null) {
+                        itemMinMaxValue = new MinMax(0, 0);
+                        itemsMinMax.put(item.getOriginalItem(), itemMinMaxValue);
+                    }
+                    itemMinMaxValue.update(item.getValue());
                 }
-                itemMinMaxValue.update(item.getValue());
             }
         }
         return itemsMinMax;
