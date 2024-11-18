@@ -60,7 +60,7 @@ public class PvGisCsvLoader {
 
         HEADER_TO_ITEM_TYPE.forEach((header, itemType) -> {
             String itemValue = csvRecord.get(header);
-            Item item = ItemBuilder.build(itemType, itemValue);
+            Item item = new Item(itemValue, itemType);
             itemSetBuilder.addItem(item);
         });
         return itemSetBuilder.build();

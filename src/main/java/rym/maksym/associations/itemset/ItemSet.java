@@ -3,7 +3,7 @@ package rym.maksym.associations.itemset;
 import java.time.LocalDateTime;
 import java.util.*;
 
-public class ItemSet {
+public class ItemSet implements Iterable<Item> {
     private Set<Item> itemSet;
     private LocalDateTime transactionTime;
 
@@ -26,6 +26,11 @@ public class ItemSet {
         if (o == null || getClass() != o.getClass()) return false;
         ItemSet itemSet1 = (ItemSet) o;
         return Objects.equals(itemSet, itemSet1.itemSet) && Objects.equals(transactionTime, itemSet1.transactionTime);
+    }
+
+    @Override
+    public Iterator<Item> iterator() {
+        return itemSet.iterator();
     }
 
     @Override
