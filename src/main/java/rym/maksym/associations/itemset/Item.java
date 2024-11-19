@@ -2,56 +2,52 @@ package rym.maksym.associations.itemset;
 
 import java.util.Objects;
 
-public class Item {
+public class Item<T> {
     private double numericValue;
-    private final Object item;
+    private final T item;
 
-    private final boolean isNumeric;
+    private final ItemType type;
 
-    public Item(Object item) {
+    public Item(ItemType type, T item) {
+        this.type = type;
         this.item = item;
-        this.isNumeric = false;
     }
 
-    public Item(Object item, double numericValue) {
+    public Item(ItemType type, T item, double numericValue) {
+        this.type = type;
         this.item = item;
-        this.isNumeric = true;
         this.numericValue = numericValue;
     }
 
-    public static Item of(Object item) {
-        return new Item(item);
+    public static <E> Item<E> of(ItemType type, E item) {
+        return new Item<>(type, item);
     }
     public double getValue() {
         return numericValue;
     }
 
-    public Object getOriginalItem() {
+    public ItemType getType() {
+        return type;
+    }
+
+    public T getOriginalItem() {
         return item;
     }
 
     public boolean isNumeric() {
-        return isNumeric;
+        return type.isNumeric();
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Item item1 = (Item) o;
-        if (isNumeric) {
-            return Double.compare(numericValue, item1.numericValue) == 0 && Objects.equals(item, item1.item);
-        } else {
-            return Objects.equals(item, item1.item);
-        }
+        Item<?> item = (Item<?>) o;
+        return Double.compare(numericValue, item.numericValue) == 0 && Objects.equals(type, item.type);
     }
 
     @Override
     public int hashCode() {
-        if (isNumeric) {
-            return Objects.hash(numericValue, item);
-        } else {
-            return Objects.hash(item);
-        }
+        return Objects.hash(numericValue, type);
     }
 }

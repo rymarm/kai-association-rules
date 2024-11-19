@@ -4,6 +4,7 @@ import rym.maksym.associations.itemset.Item;
 import rym.maksym.associations.itemset.ItemSet;
 import rym.maksym.associations.transactions.Normalization;
 import rym.maksym.associations.transactions.Transactions;
+import rym.maksym.associations.util.Math;
 
 import java.util.*;
 
@@ -14,17 +15,17 @@ public class Apriori {
         this.minSupport = minSupport;
     }
 
-    public Map<Set<Item>, Double> calculateItemGroupsSupport(Transactions transactions) {
+    public <T> Map<Set<Item<T>>, Double> calculateItemGroupsSupport(Transactions<T> transactions) {
         return calculateItemGroupsSupport(transactions, true);
     }
 
-    public Map<Set<Item>, Double> calculateItemGroupsSupport(Transactions transactions, boolean normalizeItemsValues) {
+    public <T> Map<Set<Item<T>>, Double> calculateItemGroupsSupport(Transactions<T> transactions, boolean normalizeItemsValues) {
         if (normalizeItemsValues) {
             transactions = Normalization.minMax(transactions);
         }
 
-        Map<Set<Item>, Double> allItemGroupsSupport = new HashMap<>();
-        Map<Set<Item>, Double> itemGroupsSupport = calculateSingleItemGroupSupport(transactions);
+        Map<Set<Item<T>>, Double> allItemGroupsSupport = new HashMap<>();
+        Map<Set<Item<T>>, Double> itemGroupsSupport = calculateSingleItemGroupSupport(transactions);
 
         while (!itemGroupsSupport.isEmpty()) {
             allItemGroupsSupport.putAll(itemGroupsSupport);
@@ -33,20 +34,21 @@ public class Apriori {
         return allItemGroupsSupport;
     }
 
-    private Map<Set<Item>, Double> calculateSingleItemGroupSupport(Transactions transactions) {
+    private <T> Map<Set<Item<T>>, Double> calculateSingleItemGroupSupport(Transactions<T> transactions) {
         final int transactionCount = transactions.size();
 
-        Map<Item, Integer> itemsFrequencyCount = new HashMap<>();
-        for (ItemSet itemSet : transactions) {
-            for (Item item : itemSet) {
+        Map<Item<T>, Integer> itemsFrequencyCount = new HashMap<>();
+        for (ItemSet<T> itemSet : transactions) {
+            for (Item<T> item : itemSet) {
                 int  itemFrequencyCount = itemsFrequencyCount.getOrDefault(item, 0) + 1;
                 itemsFrequencyCount.put(item, itemFrequencyCount);
             }
         }
 
-        Map<Set<Item>, Double> singleItemGroupsSupport = new HashMap<>();
+        Map<Set<Item<T>>, Double> singleItemGroupsSupport = new HashMap<>();
         itemsFrequencyCount.forEach((item, itemFrequencyCount) -> {
             double support = (double) itemFrequencyCount / transactionCount;
+            support = Math.round(support, 4);
             if (support >= minSupport) {
                 singleItemGroupsSupport.put(Set.of(item), support);
             }
@@ -55,22 +57,22 @@ public class Apriori {
         return singleItemGroupsSupport;
     }
 
-    private Map<Set<Item>, Double> combineAndPrune(Set<Set<Item>> itemGroupsSet, Transactions transactions) {
-        Set<Set<Item>> combinedItemGroups = combine(itemGroupsSet);
+    private <T> Map<Set<Item<T>>, Double> combineAndPrune(Set<Set<Item<T>>> itemGroupsSet, Transactions<T> transactions) {
+        Set<Set<Item<T>>> combinedItemGroups = combine(itemGroupsSet);
         return prune(combinedItemGroups, transactions);
     }
 
-    private Set<Set<Item>> combine(Set<Set<Item>> itemGroupsSet) {
-        List<Set<Item>> itemGroupsList = List.copyOf(itemGroupsSet);
+    private <T> Set<Set<Item<T>>> combine(Set<Set<Item<T>>> itemGroupsSet) {
+        List<Set<Item<T>>> itemGroupsList = List.copyOf(itemGroupsSet);
 
         int presentItemGroupSize = itemGroupsList.get(0).size();
         final int THE_NEXT_ITEM_GROUP_SIZE = presentItemGroupSize + 1;
 
-        Set<Set<Item>> nextItemGroups = new HashSet<>();
+        Set<Set<Item<T>>> nextItemGroups = new HashSet<>();
 
         for (int itemGroupIndex = 0; itemGroupIndex < itemGroupsList.size(); itemGroupIndex++) {
             for (int nextItemGroupIndex = itemGroupIndex + 1; nextItemGroupIndex < itemGroupsList.size(); nextItemGroupIndex++) {
-                Set<Item> newItemCombinationGroup = new HashSet<>(itemGroupsList.get(itemGroupIndex));
+                Set<Item<T>> newItemCombinationGroup = new HashSet<>(itemGroupsList.get(itemGroupIndex));
                 newItemCombinationGroup.addAll(itemGroupsList.get(nextItemGroupIndex));
 
                 if (newItemCombinationGroup.size() == THE_NEXT_ITEM_GROUP_SIZE) {
@@ -81,9 +83,9 @@ public class Apriori {
         return nextItemGroups;
     }
 
-    private Map<Set<Item>, Double> prune(Set<Set<Item>> itemGroupsList, Transactions transactions) {
-        Map<Set<Item>, Double> itemGroupsSupport = new HashMap<>();
-        for (Set<Item> itemGroup : itemGroupsList) {
+    private <T> Map<Set<Item<T>>, Double> prune(Set<Set<Item<T>>> itemGroupsList, Transactions<T> transactions) {
+        Map<Set<Item<T>>, Double> itemGroupsSupport = new HashMap<>();
+        for (Set<Item<T>> itemGroup : itemGroupsList) {
             double support = calculateSupport(itemGroup, transactions);
             if (support >= minSupport) {
                 itemGroupsSupport.put(itemGroup, support);
@@ -93,26 +95,27 @@ public class Apriori {
         return itemGroupsSupport;
     }
 
-    private double calculateSupport(Set<Item> itemGroup, Transactions transactions) {
+    private <T> double calculateSupport(Set<Item<T>> itemGroup, Transactions<T> transactions) {
         int frequencyCount = 0;
 
-        for (ItemSet itemSet : transactions) {
+        for (ItemSet<T> itemSet : transactions) {
             if (itemSet.containsAll(itemGroup)) {
                 frequencyCount++;
             }
         }
-        return (double) frequencyCount / transactions.size();
+        double support = (double) frequencyCount / transactions.size();
+        return Math.round(support, 4);
     }
 
-    public void generateAssociationRules(Map<Set<Item>, Double> itemGroupsSupport, Transactions transactions, double minConfidence) {
-        for (Set<Item> itemsGroup : itemGroupsSupport.keySet()) {
+    public <T> void  generateAssociationRules(Map<Set<Item<T>>, Double> itemGroupsSupport, Transactions<T> transactions, double minConfidence) {
+        for (Set<Item<T>> itemsGroup : itemGroupsSupport.keySet()) {
             if (itemsGroup.size() < 2) {
                 continue;
             }
-            for (Item item : itemsGroup) {
-                Set<Item> itemGroup = new HashSet<>(itemsGroup);
+            for (Item<T> item : itemsGroup) {
+                Set<Item<T>> itemGroup = new HashSet<>(itemsGroup);
                 itemGroup.remove(item);
-                Set<Item> singleItem = Set.of(item);
+                Set<Item<T>> singleItem = Set.of(item);
 
                 double itemGroupSupport = calculateSupport(itemGroup, transactions);
                 double itemSetSupport = itemGroupsSupport.get(itemsGroup);

@@ -1,24 +1,22 @@
 package rym.maksym;
 
 import org.junit.jupiter.api.Test;
+import rym.maksym.associations.itemset.CharItemType;
 import rym.maksym.associations.itemset.Item;
-import rym.maksym.associations.itemset.ItemSet;
 import rym.maksym.associations.itemset.ItemSetBuilder;
 import rym.maksym.associations.transactions.Transactions;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class AprioriTest {
 
     @Test
     void generalSimpleTest() {
         //given
-        Transactions transactions = createTransactionsOfLetters("ABC",
+        Transactions<Character> transactions = createTransactionsOfLetters("ABC",
                 "ABD",
                 "ABD",
                 "BCE",
@@ -27,7 +25,7 @@ class AprioriTest {
         Apriori apriori = new Apriori(0.5);
 
         //sut
-        Map<Set<Item>, Double> itemGroupsSupport = apriori.calculateItemGroupsSupport(transactions);
+        Map<Set<Item<Character>>, Double> itemGroupsSupport = apriori.calculateItemGroupsSupport(transactions);
 
         /*
         verification. Should be:
@@ -38,13 +36,13 @@ class AprioriTest {
         assertEquals(3, itemGroupsSupport.size());
     }
 
-    private Transactions createTransactionsOfLetters(String... strings) {
-        Transactions transactions = new Transactions();
+    private Transactions<Character> createTransactionsOfLetters(String... strings) {
+        Transactions<Character> transactions = new Transactions<>();
         for (String itemSetString : strings) {
-            ItemSetBuilder itemSetBuilder = new ItemSetBuilder();
-            for (int charIndex = 0; charIndex < itemSetString.length(); charIndex++) {
-                char charItem = itemSetString.charAt(charIndex);
-                itemSetBuilder.addItem(Item.of(charItem));
+            ItemSetBuilder<Character> itemSetBuilder = new ItemSetBuilder<>();
+            for (char item : itemSetString.toCharArray()) {
+                CharItemType itemType = new CharItemType(item);
+                itemSetBuilder.addItem(Item.of(itemType, item));
             }
             transactions.addItemSet(itemSetBuilder.build());
         }

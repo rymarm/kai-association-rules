@@ -3,15 +3,15 @@ package rym.maksym.associations.itemset;
 import java.time.LocalDateTime;
 import java.util.*;
 
-public class ItemSetBuilder {
-    private Set<Item> items = new HashSet<>();
+public class ItemSetBuilder<T> {
+    private Set<Item<T>> items = new HashSet<>();
     private LocalDateTime transactionTime;
 
-    public ItemSetBuilder addItem(Item... items) {
-        Collections.addAll(this.items, items);
+    public ItemSetBuilder<T> addItem(Item<T> item) {
+        this.items.add(item);
         return this;
     }
-    public ItemSetBuilder addTransactionTime(LocalDateTime transactionTime) {
+    public ItemSetBuilder<T> addTransactionTime(LocalDateTime transactionTime) {
         this.transactionTime = transactionTime;
         return this;
     }
@@ -20,7 +20,7 @@ public class ItemSetBuilder {
         return items.isEmpty();
     }
 
-    public ItemSet build() {
-        return new ItemSet(items, transactionTime);
+    public ItemSet<T> build() {
+        return new ItemSet<T>(items, transactionTime);
     }
 }

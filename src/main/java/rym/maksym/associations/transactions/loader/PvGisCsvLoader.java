@@ -5,7 +5,6 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import rym.maksym.associations.itemset.*;
 import rym.maksym.associations.transactions.Transactions;
-import rym.maksym.associations.util.GeneralNumericItem;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -26,12 +25,12 @@ public class PvGisCsvLoader {
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd:HHmm");
     private static final String TIME_HEADER = "time";
 
-    public static Transactions createTransactionsFrom(String csvFilePath) {
+    public static Transactions<Double> createTransactionsFrom(String csvFilePath) {
         CSVParser csvParser = parseCsvFile(csvFilePath);
 
-        Transactions transactions = new Transactions();
+        Transactions<Double> transactions = new Transactions<>();
         csvParser.stream().forEach(csvRecord -> {
-            ItemSet itemSet = parseTransaction(csvRecord);
+            ItemSet<Double> itemSet = parseTransaction(csvRecord);
             transactions.addItemSet(itemSet);
         });
 
@@ -52,8 +51,8 @@ public class PvGisCsvLoader {
         }
     }
 
-    private static ItemSet parseTransaction(CSVRecord csvRecord) {
-        ItemSetBuilder itemSetBuilder = new ItemSetBuilder();
+    private static ItemSet<Double> parseTransaction(CSVRecord csvRecord) {
+        ItemSetBuilder<Double> itemSetBuilder = new ItemSetBuilder<>();
 
         String recordTimeString = csvRecord.get(TIME_HEADER);
         LocalDateTime recordTime = LocalDateTime.parse(recordTimeString, TIME_FORMAT);
@@ -61,11 +60,9 @@ public class PvGisCsvLoader {
 
         HEADER_TO_ITEM_TYPE.forEach((header, itemType) -> {
             String stringItemValue = csvRecord.get(header);
-            double itemValue = Double.valueOf(stringItemValue);
+            double itemValue = Double.parseDouble(stringItemValue);
+            Item<Double> item = new Item<>(itemType, itemValue, itemValue);
 
-            GeneralNumericItem pvGisItem = new GeneralNumericItem(itemType.toString(), itemValue);
-
-            Item item = new Item(pvGisItem, itemValue);
             itemSetBuilder.addItem(item);
         });
         return itemSetBuilder.build();
