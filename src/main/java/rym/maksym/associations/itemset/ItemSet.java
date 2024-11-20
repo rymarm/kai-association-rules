@@ -7,7 +7,7 @@ public class ItemSet<T> implements Iterable<Item<T>> {
     private Set<Item<T>> itemSet;
     private LocalDateTime transactionTime;
 
-    public ItemSet(Set<Item<T>> itemSet, LocalDateTime transactionTime) {
+    ItemSet(Set<Item<T>> itemSet, LocalDateTime transactionTime) {
         this.itemSet = itemSet;
         this.transactionTime = transactionTime;
     }
@@ -20,8 +20,12 @@ public class ItemSet<T> implements Iterable<Item<T>> {
         return transactionTime;
     }
 
-    public boolean containsAll(Set<Item<T>> itemGroup) {
+    public boolean containsAll(Collection<Item<T>> itemGroup) {
         return itemSet.containsAll(itemGroup);
+    }
+
+    public boolean contains(Item<T> item) {
+        return itemSet.contains(item);
     }
 
     @Override

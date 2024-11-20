@@ -26,11 +26,15 @@ public class PvGisCsvLoader {
     private static final String TIME_HEADER = "time";
 
     public static Transactions<Double> createTransactionsFrom(String csvFilePath) {
+        return createTransactionsFrom(csvFilePath, false);
+    }
+
+    public static Transactions<Double> createTransactionsFrom(String csvFilePath, boolean roundValues) {
         CSVParser csvParser = parseCsvFile(csvFilePath);
 
         Transactions<Double> transactions = new Transactions<>();
         csvParser.stream().forEach(csvRecord -> {
-            ItemSet<Double> itemSet = parseTransaction(csvRecord);
+            ItemSet<Double> itemSet = parseTransaction(csvRecord, roundValues);
             transactions.addItemSet(itemSet);
         });
 
@@ -51,7 +55,7 @@ public class PvGisCsvLoader {
         }
     }
 
-    private static ItemSet<Double> parseTransaction(CSVRecord csvRecord) {
+    private static ItemSet<Double> parseTransaction(CSVRecord csvRecord, boolean roundValues) {
         ItemSetBuilder<Double> itemSetBuilder = new ItemSetBuilder<>();
 
         String recordTimeString = csvRecord.get(TIME_HEADER);
@@ -61,6 +65,9 @@ public class PvGisCsvLoader {
         HEADER_TO_ITEM_TYPE.forEach((header, itemType) -> {
             String stringItemValue = csvRecord.get(header);
             double itemValue = Double.parseDouble(stringItemValue);
+            if (roundValues) {
+                itemValue = Math.round(itemValue);
+            }
             Item<Double> item = new Item<>(itemType, itemValue, itemValue);
 
             itemSetBuilder.addItem(item);
