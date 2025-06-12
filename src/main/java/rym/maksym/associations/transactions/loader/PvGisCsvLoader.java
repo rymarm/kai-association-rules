@@ -1,14 +1,16 @@
 package rym.maksym.associations.transactions.loader;
 
+import ch.qos.logback.core.util.StringUtil;
+import org.apache.commons.codec.binary.StringUtils;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import rym.maksym.Application;
 import rym.maksym.associations.itemset.*;
 import rym.maksym.associations.transactions.Transactions;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
@@ -43,17 +45,25 @@ public class PvGisCsvLoader {
 
     private static CSVParser parseCsvFile(String csvFilePath) {
         try {
-            FileReader csvFile = new FileReader(csvFilePath);
+            Reader reader;
+            if (StringUtil.isNullOrEmpty(csvFilePath)) {
+                InputStream bundledCsvFile = PvGisCsvLoader.class.getClassLoader().getResourceAsStream("PVGIS-2020-2021.csv");
+                reader = new InputStreamReader(bundledCsvFile, StandardCharsets.UTF_8);
+            } else {
+                reader = new FileReader(csvFilePath);;
+            }
             CSVFormat csvFormat = CSVFormat.DEFAULT.builder()
                     .setHeader()
                     .build();
-            return new CSVParser(csvFile, csvFormat);
+            return new CSVParser(reader, csvFormat);
         } catch (FileNotFoundException e) {
             throw new RuntimeException(String.format("Csv file %s is not found", csvFilePath), e);
         } catch (IOException e) {
             throw new RuntimeException("Failed to parse CSV file.", e);
         }
     }
+
+
 
     private static ItemSet<Double> parseTransaction(CSVRecord csvRecord, boolean roundValues) {
         ItemSetBuilder<Double> itemSetBuilder = new ItemSetBuilder<>();
